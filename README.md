@@ -2,7 +2,7 @@
 
 LUT post-processing node for ComfyUI.
 
-<img src="https://github.com/Rimor-dev/ComfyUI-LUT-Master/tree/main/assets/node.png" alt="main" width="30%"> 
+<img src="https://github.com/Rimor-dev/ComfyUI-LUT-Master/blob/main/assets/node.png" alt="main" width="100%"> 
 
 
 Apply up to 4 `.cube` LUTs sequentially with adjustable strength (0–100%).
