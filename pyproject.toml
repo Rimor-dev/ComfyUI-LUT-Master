@@ -1,0 +1,19 @@
+[project]
+name = "lut-master"
+description = "LUT post-processing for ComfyUI: .cube files, RGB curve, photo filters, color corrections."
+version = "1.0.0"
+license = {text = "MIT"}
+authors = [{name = "Rimor"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pillow-lut",
+    "numpy",
+]
+
+[project.urls]
+Repository = "https://github.com/Rimor-dev/ComfyUI-LUT-Master"
+
+[tool.comfy]
+PublisherId = "rimor"
+DisplayName = "LUT Master"

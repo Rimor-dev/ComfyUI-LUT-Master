@@ -404,21 +404,30 @@ function createCurveCanvas(node, container, onSave) {
     `;
     wrapper.appendChild(labelEl);
 
-    const canvas = document.createElement('canvas');
-    const size = UI.curveCanvasSize;
-    canvas.width = size;
-    canvas.height = size;
-    canvas.style.cssText = `
+    // Контейнер фиксированного размера (CSS)
+    const canvasWrap = document.createElement('div');
+    canvasWrap.style.cssText = `
+        width: 260px;
+        height: 260px;
+        max-width: 100%;
+        position: relative;
         background: ${COLORS.bgInput};
         border: 1px solid ${COLORS.border};
         border-radius: 4px;
-        cursor: crosshair;
-        width: 100%;
-        height: auto;
-        display: block;
+        overflow: hidden;
+        margin: 0 auto;
     `;
-    wrapper.appendChild(canvas);
+    wrapper.appendChild(canvasWrap);
     container.appendChild(wrapper);
+
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = `
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+    `;
+    canvasWrap.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
 
@@ -445,88 +454,119 @@ function createCurveCanvas(node, container, onSave) {
         }
     }
 
-    function draw() {
-        ctx.clearRect(0, 0, size, size);
+    // Перерисовка с учётом РЕАЛЬНОГО размера canvas в пикселях
+    function resizeAndDraw() {
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
 
+        // Устанавливаем внутреннее разрешение равным фактическому (с учётом DPR)
+        const dpr = window.devicePixelRatio || 1;
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+
+        const W = canvas.width;
+        const H = canvas.height;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Сетка
         ctx.strokeStyle = '#2a2a2a';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1 * dpr;
         for (let i = 1; i < 4; i++) {
-            const p = (i / 4) * size;
+            const p = (i / 4) * W;
             ctx.beginPath();
             ctx.moveTo(p, 0);
-            ctx.lineTo(p, size);
+            ctx.lineTo(p, H);
             ctx.stroke();
             ctx.beginPath();
             ctx.moveTo(0, p);
-            ctx.lineTo(size, p);
+            ctx.lineTo(W, p);
             ctx.stroke();
         }
 
+        // Диагональ
         ctx.strokeStyle = '#333';
-        ctx.setLineDash([4, 4]);
+        ctx.setLineDash([4 * dpr, 4 * dpr]);
         ctx.beginPath();
-        ctx.moveTo(0, size);
-        ctx.lineTo(size, 0);
+        ctx.moveTo(0, H);
+        ctx.lineTo(W, 0);
         ctx.stroke();
         ctx.setLineDash([]);
 
+        // Координаты точек (в пикселях canvas)
+        const ax = pointA.x * W;
+        const ay = H - pointA.y * H;
+        const bx = pointB.x * W;
+        const by = H - pointB.y * H;
+
+        // Кривая
         ctx.strokeStyle = COLORS.accent;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 * dpr;
         ctx.beginPath();
 
         if (pointA.x > 0) {
-            ctx.moveTo(0, size);
-            ctx.lineTo(pointA.x * size, size - pointA.y * size);
+            ctx.moveTo(0, H);
+            ctx.lineTo(ax, ay);
         } else {
-            ctx.moveTo(0, size - pointA.y * size);
+            ctx.moveTo(0, ay);
         }
 
-        ctx.lineTo(pointB.x * size, size - pointB.y * size);
+        ctx.lineTo(bx, by);
 
         if (pointB.x < 1) {
-            ctx.lineTo(size, 0);
+            ctx.lineTo(W, 0);
         } else {
-            ctx.lineTo(size, size - pointB.y * size);
+            ctx.lineTo(W, by);
         }
 
         ctx.stroke();
 
-        const drawPoint = (p, color) => {
+        // Точки
+        const drawPoint = (x, y, color) => {
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(p.x * size, size - p.y * size, 6, 0, Math.PI * 2);
+            ctx.arc(x, y, 7 * dpr, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1.5;
+            ctx.lineWidth = 2 * dpr;
             ctx.stroke();
         };
 
-        drawPoint(pointA, COLORS.accent);
-        drawPoint(pointB, COLORS.green);
+        drawPoint(ax, ay, COLORS.accent);
+        drawPoint(bx, by, COLORS.green);
     }
 
     function getMousePos(e) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = size / rect.width;
-        const scaleY = size / rect.height;
-        const x = ((e.clientX ?? e.touches?.[0]?.clientX) - rect.left) * scaleX;
-        const y = ((e.clientY ?? e.touches?.[0]?.clientY) - rect.top) * scaleY;
+        const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
+        const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+
+        // Нормализованные координаты (0..1) относительно фактического размера
+        const nx = (clientX - rect.left) / rect.width;
+        const ny = (clientY - rect.top) / rect.height;
+
         return {
-            x: Math.max(0, Math.min(1, x / size)),
-            y: Math.max(0, Math.min(1, 1 - y / size)),
+            x: Math.max(0, Math.min(1, nx)),
+            y: Math.max(0, Math.min(1, 1 - ny)), // инверсия Y
         };
     }
 
     function findNearest(mouse) {
         const dA = Math.hypot(mouse.x - pointA.x, mouse.y - pointA.y);
         const dB = Math.hypot(mouse.x - pointB.x, mouse.y - pointB.y);
-        if (dA < 0.08 && dA < dB) return 'A';
-        if (dB < 0.08) return 'B';
+        if (dA < 0.1 && dA < dB) return 'A';
+        if (dB < 0.1) return 'B';
         return null;
     }
 
     canvas.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
+        e.preventDefault();
         const mouse = getMousePos(e);
         dragging = findNearest(mouse);
         if (dragging) {
@@ -545,17 +585,17 @@ function createCurveCanvas(node, container, onSave) {
         const mouse = getMousePos(e);
 
         if (dragging === 'A') {
-            pointA.x = Math.min(pointB.x - 0.01, mouse.x);
-            pointA.y = mouse.y;
+            pointA.x = Math.min(pointB.x - 0.01, Math.max(0, mouse.x));
+            pointA.y = Math.max(0, Math.min(1, mouse.y));
             setWidget("curve_a_x", pointA.x);
             setWidget("curve_a_y", pointA.y);
         } else {
-            pointB.x = Math.max(pointA.x + 0.01, mouse.x);
-            pointB.y = mouse.y;
+            pointB.x = Math.max(pointA.x + 0.01, Math.min(1, mouse.x));
+            pointB.y = Math.max(0, Math.min(1, mouse.y));
             setWidget("curve_b_x", pointB.x);
             setWidget("curve_b_y", pointB.y);
         }
-        draw();
+        resizeAndDraw();
         if (onSave) onSave();
     });
 
@@ -567,18 +607,24 @@ function createCurveCanvas(node, container, onSave) {
         }
     });
 
-    draw();
+    // Отслеживаем изменение размера (зум ComfyUI)
+    const ro = new ResizeObserver(() => {
+        resizeAndDraw();
+    });
+    ro.observe(canvasWrap);
+
+    // Первичная отрисовка
+    requestAnimationFrame(() => resizeAndDraw());
 
     return {
-        draw,
+        draw: resizeAndDraw,
         setPoints: (a, b) => {
             pointA = { ...a };
             pointB = { ...b };
-            draw();
+            resizeAndDraw();
         },
     };
 }
-
 // ============================================================
 // LUT SLOTS
 // ============================================================
