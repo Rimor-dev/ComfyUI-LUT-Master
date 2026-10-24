@@ -74,6 +74,8 @@ def apply_rgb_curve(image_tensor, a_x, a_y, b_x, b_y):
         return image_tensor
 
     img = image_tensor.clone().cpu().numpy()
+    if img.shape[-1] == 4:
+        img = img[..., :3]
     slope = (b_y - a_y) / (b_x - a_x)
 
     result = np.where(
@@ -164,6 +166,8 @@ def apply_photo_filter(image_tensor, filter_name, density, preserve_lum):
     d = max(0.0, min(100.0, float(density))) / 100.0
 
     img = image_tensor.clone().cpu().numpy()
+    if img.shape[-1] == 4:
+        img = img[..., :3]
     filtered = img * filter_color
     result = img * (1.0 - d) + filtered * d
 

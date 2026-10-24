@@ -2,19 +2,22 @@ import { app } from "../../scripts/app.js";
 
 const EXTENSION_NAME = "Rimor.LUTMaster";
 
+// ============================================================
+// ЦВЕТА (ВЗЯТЫ ИЗ COMMAND DECK)
+// ============================================================
 const COLORS = {
-    accent: "#4a90d9",
-    accentHover: "#5aa0e9",
-    accentDark: "#2a5a99",
-    bg: "#1a1a1a",
-    bgLight: "#222222",
-    bgWidget: "#252525",
-    bgInput: "#111111",
-    text: "#e0e0e0",
-    textDim: "#999999",
-    border: "#333333",
-    red: "#f87171",
-    green: "#4ade80",
+    accent: "#0C759D",        // Основной бирюзовый акцент (как у кнопок в CD)
+    accentHover: "#113246",   // Ховер для кнопок
+    accentDark: "#040C17",    // Тёмный акцент
+    bg: "#0D1922",            // Общий фон ноды
+    bgLight: "#1B3E4F",       // Светлый фон (для кнопок)
+    bgWidget: "#1b3e4f",      // Фон карточек LUT-слотов
+    bgInput: "#040C0F",       // Фон инпутов, треков, цифр
+    text: "#068598",          // Основной текст (бирюзовый)
+    textDim: "#48929D",       // Тусклый текст (серо-бирюзовый)
+    border: "#090E0D",        // Границы
+    red: "#f87171",           // Красный (для удаления)
+    green: "#08E477",         // Зелёный (для активных чекбоксов)
 };
 
 const UI = {
@@ -23,7 +26,7 @@ const UI = {
     buttonHeight: 32,
     buttonFontSize: 13,
     widgetFontSize: 14,
-    labelFontSize: 12,
+    labelFontSize: 15,
     sliderTrackHeight: 6,
     sliderThumbSize: 16,
     padding: 8,
@@ -45,8 +48,8 @@ function makeButton(text, onClick, color = COLORS.accent) {
         flex: 1 1 0;
         min-width: 0;
         height: ${UI.buttonHeight}px;
-        background: linear-gradient(180deg, ${color}, ${COLORS.accentDark});
-        color: #ffffff;
+        background: linear-gradient(180deg, #143041, #0E1F29);
+        color: #0088B0;
         border: 1px solid ${color};
         border-radius: 6px;
         font-family: monospace;
@@ -66,7 +69,7 @@ function makeButton(text, onClick, color = COLORS.accent) {
         btn.style.boxShadow = `0 0 8px ${color}80`;
     });
     btn.addEventListener('mouseleave', () => {
-        btn.style.background = `linear-gradient(180deg, ${color}, ${COLORS.accentDark})`;
+        btn.style.background = `linear-gradient(180deg, #0E1F29, ${COLORS.accentDark})`;
         btn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
     });
     btn.addEventListener('click', (e) => {
@@ -121,7 +124,7 @@ function createSlider(node, container, label, widgetName, defaultValue, min, max
         width: 100%;
         height: ${UI.sliderTrackHeight}px;
         background: ${COLORS.bgInput};
-        border-radius: 3px;
+        border-radius: 1px;
         cursor: pointer;
     `;
 
@@ -132,7 +135,7 @@ function createSlider(node, container, label, widgetName, defaultValue, min, max
         top: 0;
         height: 100%;
         background: ${COLORS.accent};
-        border-radius: 3px;
+        border-radius: 1px;
         pointer-events: none;
     `;
 
@@ -321,9 +324,9 @@ function createCheckbox(node, container, label, widgetName, defaultValue, onSave
     const box = document.createElement('div');
     let checked = !!defaultValue;
     const updateBox = () => {
-        box.style.background = checked ? COLORS.accent : COLORS.bgInput;
+        box.style.background = checked ? COLORS.green : COLORS.bgInput;
         box.style.borderColor = checked ? COLORS.accent : COLORS.border;
-        box.textContent = checked ? '✓' : '';
+        box.textContent = checked ? '☉' : '';
     };
     box.style.cssText = `
         width: 24px;
@@ -404,18 +407,19 @@ function createCurveCanvas(node, container, onSave) {
     `;
     wrapper.appendChild(labelEl);
 
-    // Контейнер фиксированного размера (CSS)
+    // Контейнер фиксированного размера (CSS) с размытием
     const canvasWrap = document.createElement('div');
     canvasWrap.style.cssText = `
         width: 260px;
         height: 260px;
         max-width: 100%;
         position: relative;
-        background: ${COLORS.bgInput};
-        border: 1px solid ${COLORS.border};
-        border-radius: 4px;
+        background: #415b65;
+        border: 1px solid #0C759D;
+        border-radius: 6px;
         overflow: hidden;
         margin: 0 auto;
+        box-shadow: 0 0 12px rgba(12, 117, 157, 0.3);
     `;
     wrapper.appendChild(canvasWrap);
     container.appendChild(wrapper);
@@ -459,7 +463,6 @@ function createCurveCanvas(node, container, onSave) {
         const rect = canvas.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
 
-        // Устанавливаем внутреннее разрешение равным фактическому (с учётом DPR)
         const dpr = window.devicePixelRatio || 1;
         const w = Math.round(rect.width * dpr);
         const h = Math.round(rect.height * dpr);
@@ -474,8 +477,8 @@ function createCurveCanvas(node, container, onSave) {
 
         ctx.clearRect(0, 0, W, H);
 
-        // Сетка
-        ctx.strokeStyle = '#2a2a2a';
+        // Сетка (цвет как у Command Deck)
+        ctx.strokeStyle = '#040C0F';
         ctx.lineWidth = 1 * dpr;
         for (let i = 1; i < 4; i++) {
             const p = (i / 4) * W;
@@ -490,7 +493,7 @@ function createCurveCanvas(node, container, onSave) {
         }
 
         // Диагональ
-        ctx.strokeStyle = '#333';
+        ctx.strokeStyle = '#b4d5e3';
         ctx.setLineDash([4 * dpr, 4 * dpr]);
         ctx.beginPath();
         ctx.moveTo(0, H);
@@ -498,13 +501,13 @@ function createCurveCanvas(node, container, onSave) {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Координаты точек (в пикселях canvas)
+        // Координаты точек
         const ax = pointA.x * W;
         const ay = H - pointA.y * H;
         const bx = pointB.x * W;
         const by = H - pointB.y * H;
 
-        // Кривая
+        // Кривая (бирюзовая)
         ctx.strokeStyle = COLORS.accent;
         ctx.lineWidth = 2 * dpr;
         ctx.beginPath();
@@ -526,7 +529,7 @@ function createCurveCanvas(node, container, onSave) {
 
         ctx.stroke();
 
-        // Точки
+        // Точки (акцент и зелёный)
         const drawPoint = (x, y, color) => {
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -546,13 +549,12 @@ function createCurveCanvas(node, container, onSave) {
         const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? 0;
         const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
 
-        // Нормализованные координаты (0..1) относительно фактического размера
         const nx = (clientX - rect.left) / rect.width;
         const ny = (clientY - rect.top) / rect.height;
 
         return {
             x: Math.max(0, Math.min(1, nx)),
-            y: Math.max(0, Math.min(1, 1 - ny)), // инверсия Y
+            y: Math.max(0, Math.min(1, 1 - ny)),
         };
     }
 
@@ -607,13 +609,11 @@ function createCurveCanvas(node, container, onSave) {
         }
     });
 
-    // Отслеживаем изменение размера (зум ComfyUI)
     const ro = new ResizeObserver(() => {
         resizeAndDraw();
     });
     ro.observe(canvasWrap);
 
-    // Первичная отрисовка
     requestAnimationFrame(() => resizeAndDraw());
 
     return {
@@ -919,6 +919,8 @@ app.registerExtension({
                     padding: ${UI.padding}px;
                     box-sizing: border-box;
                     font-family: monospace;
+                    background: ${COLORS.bg};
+                    border-radius: 8px;
                 `;
                 this.addDOMWidget("lm_main", "main_container", container, { serialize: false });
                 this._lmContainer = container;
